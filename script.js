@@ -1,84 +1,78 @@
-const navToggle = document.querySelector(".nav-toggle");
-const siteNav = document.querySelector(".site-nav");
+const menuToggle = document.querySelector(".menu-toggle");
+const nav = document.querySelector(".main-nav");
+const priorityWord = document.querySelector("#priority-word");
+const eventsTab = document.querySelector(".events-tab");
+const revealItems = document.querySelectorAll(".reveal");
+const countdownCard = document.querySelector(".countdown-card");
+const countdownValues = document.querySelectorAll("#early-bird-countdown strong");
 
-document.querySelectorAll("img").forEach((image) => {
-  const originalPath = image.getAttribute("src");
+document.documentElement.classList.add("js");
 
-  if (!originalPath || !originalPath.includes("assets/")) {
+const priorities = [
+  "Market Access",
+  "SME Growth",
+  "Trusted Trade",
+  "Investment Flow"
+];
+
+let priorityIndex = 0;
+
+menuToggle?.addEventListener("click", () => {
+  const isOpen = nav.classList.toggle("is-open");
+  menuToggle.setAttribute("aria-expanded", String(isOpen));
+});
+
+eventsTab?.addEventListener("click", () => {
+  window.location.hash = "wisdom-program";
+  document.querySelector("#wisdom-program")?.scrollIntoView({ behavior: "smooth" });
+});
+
+window.setInterval(() => {
+  priorityIndex = (priorityIndex + 1) % priorities.length;
+  priorityWord.textContent = priorities[priorityIndex];
+}, 2400);
+
+const earlyBirdDeadline = new Date("2026-06-25T23:59:59+02:00").getTime();
+
+function updateCountdown() {
+  if (!countdownCard || countdownValues.length !== 4) {
     return;
   }
 
-  const filename = originalPath.split("/").pop().split("?")[0];
-  const fallbackPaths = [
-    `assets/${filename}`,
-    `./assets/${filename}`,
-    `/assets/${filename}`,
-    `public/assets/${filename}`,
-    `./public/assets/${filename}`,
-    `/public/assets/${filename}`,
-  ];
-  let fallbackIndex = fallbackPaths.indexOf(originalPath) + 1;
+  const distance = earlyBirdDeadline - Date.now();
 
-  image.addEventListener("error", () => {
-    const nextPath = fallbackPaths[fallbackIndex];
-    fallbackIndex += 1;
-
-    if (nextPath) {
-      image.src = nextPath;
-    }
-  });
-});
-
-navToggle.addEventListener("click", () => {
-  const isOpen = siteNav.classList.toggle("is-open");
-  navToggle.setAttribute("aria-expanded", String(isOpen));
-});
-
-siteNav.addEventListener("click", (event) => {
-  if (event.target instanceof HTMLAnchorElement) {
-    siteNav.classList.remove("is-open");
-    navToggle.setAttribute("aria-expanded", "false");
+  if (distance <= 0) {
+    countdownCard.classList.add("is-ended");
+    countdownValues[0].textContent = "Early Bird has ended. Normal tickets are now R1100.";
+    countdownValues[1].textContent = "";
+    countdownValues[2].textContent = "";
+    countdownValues[3].textContent = "";
+    return;
   }
-});
 
-const serviceTabs = document.querySelectorAll("[data-service-tab]");
-const servicePanels = document.querySelectorAll("[data-service-panel]");
+  const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((distance / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((distance / (1000 * 60)) % 60);
+  const seconds = Math.floor((distance / 1000) % 60);
 
-serviceTabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const selected = tab.dataset.serviceTab;
-
-    serviceTabs.forEach((button) => {
-      const isActive = button === tab;
-      button.classList.toggle("is-active", isActive);
-      button.setAttribute("aria-selected", String(isActive));
-    });
-
-    servicePanels.forEach((panel) => {
-      const isActive = panel.dataset.servicePanel === selected;
-      panel.classList.toggle("is-active", isActive);
-      panel.hidden = !isActive;
-    });
+  [days, hours, minutes, seconds].forEach((value, index) => {
+    countdownValues[index].textContent = String(value).padStart(2, "0");
   });
-});
+}
 
-document.querySelector(".quote-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const formData = new FormData(form);
-  const name = formData.get("name") || "Customer";
-  const phone = formData.get("phone") || "Not provided";
-  const service = formData.get("service") || "General enquiry";
-  const message = formData.get("message") || "Please contact me about your services.";
-  const whatsappNumber = "27681656964";
-  const whatsappMessage = [
-    "Hello MOSS MEKUS MAG WHEEL & TYRES,",
-    "",
-    `Name: ${name}`,
-    `Phone: ${phone}`,
-    `Service needed: ${service}`,
-    `Message: ${message}`,
-  ].join("\n");
+updateCountdown();
+window.setInterval(updateCountdown, 1000);
 
-  window.location.href = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
-});
+const revealObserver = new IntersectionObserver(
+  entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  },
+  { threshold: 0.16 }
+);
+
+revealItems.forEach(item => revealObserver.observe(item));
