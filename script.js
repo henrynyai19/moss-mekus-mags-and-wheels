@@ -75,7 +75,7 @@ const seededAdmins = [
     passwordHash: "a67e5813a65dbbb71bc584c25ea4dbb2d41616a7c4b016c86db94992cf36b4c4",
   },
   {
-    email: "munusunamatrust92@gmail.com",
+    email: "munosunamatrust92@gmail.com",
     passwordHash: "347a9e97375ee352d5f2028c111157e041d22078d8987d7f5f1c67a4b66be522",
   },
   {
