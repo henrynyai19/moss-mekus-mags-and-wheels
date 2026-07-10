@@ -72,15 +72,15 @@ const adminSessionKey = "mossMekusAdminSession";
 const seededAdmins = [
   {
     email: "henrynyai19@gmail.com",
-    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+    passwordHash: "a67e5813a65dbbb71bc584c25ea4dbb2d41616a7c4b016c86db94992cf36b4c4",
   },
   {
-    email: "munosunamatrust92@gmail.com",
-    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+    email: "munusunamatrust92@gmail.com",
+    passwordHash: "347a9e97375ee352d5f2028c111157e041d22078d8987d7f5f1c67a4b66be522",
   },
   {
     email: "danielchijindu3@gmail.com",
-    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+    passwordHash: "7144ddd1c151bb3ce728aa871d76e80fd5ce24ca43d55c291b6a91678f43deb9",
   },
 ];
 const shopGrid = document.querySelector("#shop-grid");
