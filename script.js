@@ -69,6 +69,20 @@ serviceTabs.forEach((tab) => {
 const inventoryKey = "mossMekusInventory";
 const adminUsersKey = "mossMekusAdmins";
 const adminSessionKey = "mossMekusAdminSession";
+const seededAdmins = [
+  {
+    email: "admin1@mossmekus.co.za",
+    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+  },
+  {
+    email: "admin2@mossmekus.co.za",
+    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+  },
+  {
+    email: "admin3@mossmekus.co.za",
+    passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
+  },
+];
 const shopGrid = document.querySelector("#shop-grid");
 const shopEmpty = document.querySelector("#shop-empty");
 const adminList = document.querySelector("#admin-list");
@@ -124,7 +138,16 @@ const saveInventory = () => {
   localStorage.setItem(inventoryKey, JSON.stringify(inventory));
 };
 
-const loadAdmins = () => JSON.parse(localStorage.getItem(adminUsersKey) || "[]");
+const loadAdmins = () => {
+  const savedAdmins = JSON.parse(localStorage.getItem(adminUsersKey) || "[]");
+
+  if (savedAdmins.length >= 3) {
+    return savedAdmins;
+  }
+
+  localStorage.setItem(adminUsersKey, JSON.stringify(seededAdmins));
+  return seededAdmins;
+};
 
 const saveAdmins = (admins) => {
   localStorage.setItem(adminUsersKey, JSON.stringify(admins));
