@@ -71,15 +71,15 @@ const adminUsersKey = "mossMekusAdmins";
 const adminSessionKey = "mossMekusAdminSession";
 const seededAdmins = [
   {
-    email: "admin1@mossmekus.co.za",
+    email: "henrynyai19@gmail.com",
     passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
   },
   {
-    email: "admin2@mossmekus.co.za",
+    email: "munosunamatrust92@gmail.com",
     passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
   },
   {
-    email: "admin3@mossmekus.co.za",
+    email: "danielchijindu3@gmail.com",
     passwordHash: "3ad0711cfde4b395cbb07195f5d05e5fec520dea67619ffa8c3d9800d6bb32ca",
   },
 ];
