@@ -258,7 +258,7 @@ const renderInventory = () => {
 };
 
 const updateAdminAccessView = () => {
-  if (!adminAuth || !adminDashboard || !adminRegisterForm || !adminRegisterNote) {
+  if (!adminAuth || !adminDashboard) {
     return;
   }
 
@@ -268,10 +268,13 @@ const updateAdminAccessView = () => {
 
   adminAuth.hidden = Boolean(activeAdmin);
   adminDashboard.hidden = !activeAdmin;
-  adminRegisterForm.hidden = registrationClosed;
-  adminRegisterNote.textContent = registrationClosed
-    ? "Admin registration is closed. The maximum of 3 admins has been reached."
-    : `${3 - admins.length} admin registration ${3 - admins.length === 1 ? "slot" : "slots"} remaining.`;
+
+  if (adminRegisterForm && adminRegisterNote) {
+    adminRegisterForm.hidden = registrationClosed;
+    adminRegisterNote.textContent = registrationClosed
+      ? "Admin registration is closed. The maximum of 3 admins has been reached."
+      : `${3 - admins.length} admin registration ${3 - admins.length === 1 ? "slot" : "slots"} remaining.`;
+  }
 
   if (activeAdmin) {
     renderAdmin();
