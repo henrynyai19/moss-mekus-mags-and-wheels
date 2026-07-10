@@ -29,17 +29,21 @@ document.querySelectorAll("img").forEach((image) => {
   });
 });
 
-navToggle.addEventListener("click", () => {
-  const isOpen = siteNav.classList.toggle("is-open");
-  navToggle.setAttribute("aria-expanded", String(isOpen));
-});
+if (navToggle && siteNav) {
+  navToggle.addEventListener("click", () => {
+    const isOpen = siteNav.classList.toggle("is-open");
+    navToggle.setAttribute("aria-expanded", String(isOpen));
+  });
+}
 
-siteNav.addEventListener("click", (event) => {
-  if (event.target instanceof HTMLAnchorElement) {
-    siteNav.classList.remove("is-open");
-    navToggle.setAttribute("aria-expanded", "false");
-  }
-});
+if (siteNav) {
+  siteNav.addEventListener("click", (event) => {
+    if (event.target instanceof HTMLAnchorElement) {
+      siteNav.classList.remove("is-open");
+      navToggle?.setAttribute("aria-expanded", "false");
+    }
+  });
+}
 
 const serviceTabs = document.querySelectorAll("[data-service-tab]");
 const servicePanels = document.querySelectorAll("[data-service-panel]");
@@ -62,7 +66,335 @@ serviceTabs.forEach((tab) => {
   });
 });
 
-document.querySelector(".quote-form").addEventListener("submit", (event) => {
+const inventoryKey = "mossMekusInventory";
+const adminUsersKey = "mossMekusAdmins";
+const adminSessionKey = "mossMekusAdminSession";
+const shopGrid = document.querySelector("#shop-grid");
+const shopEmpty = document.querySelector("#shop-empty");
+const adminList = document.querySelector("#admin-list");
+const inventoryForm = document.querySelector("#inventory-form");
+const adminAuth = document.querySelector("#admin-auth");
+const adminDashboard = document.querySelector("#admin-dashboard");
+const adminRegisterForm = document.querySelector("#admin-register-form");
+const adminLoginForm = document.querySelector("#admin-login-form");
+const adminRegisterNote = document.querySelector("#admin-register-note");
+const adminLoginNote = document.querySelector("#admin-login-note");
+const adminLogout = document.querySelector("#admin-logout");
+const shopFilters = document.querySelectorAll("[data-shop-filter]");
+let activeShopFilter = "all";
+
+const starterInventory = [
+  {
+    id: "rim-set-17",
+    name: "17 Inch Mag Rim Set",
+    category: "Rims",
+    price: "Contact for price",
+    details: "Clean used rim set. Confirm PCD and vehicle fitment with the workshop.",
+    status: "available",
+    image: "",
+  },
+  {
+    id: "all-size-tyres",
+    name: "Tyres In All Sizes",
+    category: "Tyres",
+    price: "From budget to premium",
+    details: "Ask for availability by tyre size. Fitment and balancing available.",
+    status: "available",
+    image: "",
+  },
+  {
+    id: "wheel-supplies",
+    name: "Wheel Accessories & Supplies",
+    category: "Supplies",
+    price: "Contact for price",
+    details: "Valves, caps, selected wheel accessories, and workshop supplies.",
+    status: "available",
+    image: "",
+  },
+];
+
+const loadInventory = () => {
+  const savedInventory = localStorage.getItem(inventoryKey);
+  return savedInventory ? JSON.parse(savedInventory) : starterInventory;
+};
+
+let inventory = loadInventory();
+
+const saveInventory = () => {
+  localStorage.setItem(inventoryKey, JSON.stringify(inventory));
+};
+
+const loadAdmins = () => JSON.parse(localStorage.getItem(adminUsersKey) || "[]");
+
+const saveAdmins = (admins) => {
+  localStorage.setItem(adminUsersKey, JSON.stringify(admins));
+};
+
+const getAdminSession = () => localStorage.getItem(adminSessionKey);
+
+const setAdminSession = (email) => {
+  localStorage.setItem(adminSessionKey, email);
+};
+
+const clearAdminSession = () => {
+  localStorage.removeItem(adminSessionKey);
+};
+
+const hashPassword = async (password) => {
+  const encodedPassword = new TextEncoder().encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", encodedPassword);
+  return [...new Uint8Array(hashBuffer)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+};
+
+const escapeHtml = (value) =>
+  String(value).replace(/[&<>"']/g, (character) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
+    };
+    return entities[character];
+  });
+
+const itemImageMarkup = (item) => {
+  if (item.image) {
+    return `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" />`;
+  }
+
+  return `<div class="item-placeholder">${escapeHtml(item.category)}</div>`;
+};
+
+const renderShop = () => {
+  if (!shopGrid || !shopEmpty) {
+    return;
+  }
+
+  const visibleItems = inventory.filter((item) => {
+    const matchesFilter = activeShopFilter === "all" || item.category === activeShopFilter;
+    return matchesFilter;
+  });
+
+  shopGrid.innerHTML = visibleItems
+    .map(
+      (item) => `
+        <article class="stock-card ${item.status === "sold" ? "is-sold" : ""}">
+          <div class="stock-media">
+            ${itemImageMarkup(item)}
+            <span class="stock-status">${item.status === "sold" ? "Sold" : "Available"}</span>
+          </div>
+          <div class="stock-body">
+            <span class="stock-category">${escapeHtml(item.category)}</span>
+            <h3>${escapeHtml(item.name)}</h3>
+            <strong>${escapeHtml(item.price)}</strong>
+            <p>${escapeHtml(item.details)}</p>
+            <a href="https://wa.me/27681656964?text=${encodeURIComponent(`Hello MOSS MEKUS, I am interested in: ${item.name}`)}" target="_blank" rel="noopener">Enquire on WhatsApp</a>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+
+  shopEmpty.hidden = visibleItems.length > 0;
+};
+
+const renderAdmin = () => {
+  if (!adminList) {
+    return;
+  }
+
+  if (!getAdminSession()) {
+    adminList.innerHTML = "";
+    return;
+  }
+
+  adminList.innerHTML = inventory
+    .map(
+      (item) => `
+        <article class="admin-item">
+          <div>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span>${escapeHtml(item.category)} · ${escapeHtml(item.price)} · ${item.status === "sold" ? "Sold" : "Available"}</span>
+          </div>
+          <div class="admin-actions">
+            <button type="button" data-inventory-action="toggle" data-item-id="${item.id}">
+              ${item.status === "sold" ? "Mark Available" : "Mark Sold"}
+            </button>
+            <button type="button" data-inventory-action="remove" data-item-id="${item.id}">Remove</button>
+          </div>
+        </article>
+      `,
+    )
+    .join("");
+};
+
+const renderInventory = () => {
+  renderShop();
+  renderAdmin();
+};
+
+const updateAdminAccessView = () => {
+  if (!adminAuth || !adminDashboard || !adminRegisterForm || !adminRegisterNote) {
+    return;
+  }
+
+  const admins = loadAdmins();
+  const activeAdmin = getAdminSession();
+  const registrationClosed = admins.length >= 3;
+
+  adminAuth.hidden = Boolean(activeAdmin);
+  adminDashboard.hidden = !activeAdmin;
+  adminRegisterForm.hidden = registrationClosed;
+  adminRegisterNote.textContent = registrationClosed
+    ? "Admin registration is closed. The maximum of 3 admins has been reached."
+    : `${3 - admins.length} admin registration ${3 - admins.length === 1 ? "slot" : "slots"} remaining.`;
+
+  if (activeAdmin) {
+    renderAdmin();
+  }
+};
+
+const readImageFile = (file) =>
+  new Promise((resolve) => {
+    if (!file) {
+      resolve("");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(reader.result));
+    reader.readAsDataURL(file);
+  });
+
+shopFilters.forEach((button) => {
+  button.addEventListener("click", () => {
+    activeShopFilter = button.dataset.shopFilter;
+    shopFilters.forEach((filterButton) => {
+      filterButton.classList.toggle("is-active", filterButton === button);
+    });
+    renderShop();
+  });
+});
+
+if (inventoryForm) {
+  inventoryForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (!getAdminSession()) {
+      return;
+    }
+
+    const formData = new FormData(inventoryForm);
+    const uploadedImage = await readImageFile(formData.get("image"));
+    const item = {
+      id: `item-${Date.now()}`,
+      name: formData.get("name"),
+      category: formData.get("category"),
+      price: formData.get("price"),
+      details: formData.get("details"),
+      status: "available",
+      image: uploadedImage,
+    };
+
+    inventory = [item, ...inventory];
+    saveInventory();
+    renderInventory();
+    inventoryForm.reset();
+  });
+}
+
+if (adminRegisterForm) {
+  adminRegisterForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+  const admins = loadAdmins();
+  const formData = new FormData(adminRegisterForm);
+  const email = String(formData.get("email")).trim().toLowerCase();
+  const password = String(formData.get("password"));
+
+  if (admins.length >= 3) {
+    adminRegisterNote.textContent = "Admin registration is closed. The maximum of 3 admins has been reached.";
+    adminRegisterForm.hidden = true;
+    return;
+  }
+
+  if (admins.some((admin) => admin.email === email)) {
+    adminRegisterNote.textContent = "This email is already registered as an admin.";
+    return;
+  }
+
+  const passwordHash = await hashPassword(password);
+  const updatedAdmins = [...admins, { email, passwordHash }];
+  saveAdmins(updatedAdmins);
+  setAdminSession(email);
+  adminRegisterForm.reset();
+  adminRegisterNote.textContent = "";
+  updateAdminAccessView();
+  });
+}
+
+if (adminLoginForm) {
+  adminLoginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+  const admins = loadAdmins();
+  const formData = new FormData(adminLoginForm);
+  const email = String(formData.get("email")).trim().toLowerCase();
+  const password = String(formData.get("password"));
+  const passwordHash = await hashPassword(password);
+  const admin = admins.find((adminUser) => adminUser.email === email);
+
+  if (!admin || admin.passwordHash !== passwordHash) {
+    adminLoginNote.textContent = "Login failed. Use one of the registered admin emails.";
+    return;
+  }
+
+  setAdminSession(email);
+  adminLoginForm.reset();
+  adminLoginNote.textContent = "";
+  updateAdminAccessView();
+  });
+}
+
+if (adminLogout) {
+  adminLogout.addEventListener("click", () => {
+    clearAdminSession();
+    updateAdminAccessView();
+  });
+}
+
+if (adminList) {
+  adminList.addEventListener("click", (event) => {
+    if (!getAdminSession()) {
+      return;
+    }
+
+    const button = event.target.closest("button[data-inventory-action]");
+    if (!button) {
+      return;
+    }
+
+    const itemId = button.dataset.itemId;
+    const action = button.dataset.inventoryAction;
+
+    if (action === "toggle") {
+      inventory = inventory.map((item) =>
+        item.id === itemId ? { ...item, status: item.status === "sold" ? "available" : "sold" } : item,
+      );
+    }
+
+    if (action === "remove") {
+      inventory = inventory.filter((item) => item.id !== itemId);
+    }
+
+    saveInventory();
+    renderInventory();
+  });
+}
+
+renderInventory();
+updateAdminAccessView();
+
+document.querySelector(".quote-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
   const form = event.currentTarget;
   const formData = new FormData(form);

@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MOSS MEKUS Admin Portal</title>
+    <meta name="description" content="Private inventory admin portal for MOSS MEKUS MAG WHEEL & TYRES PTY VENTURES." />
+    <link rel="stylesheet" href="./styles.css?v=20260710" />
+  </head>
+  <body>
+    <header class="site-header" id="top">
+      <a class="brand" href="./index.html" aria-label="Back to MOSS MEKUS home">
+        <span class="brand-mark">MM</span>
+        <span>
+          <strong>MOSS MEKUS</strong>
+          <small>Private Admin</small>
+        </span>
+      </a>
+
+      <nav class="site-nav admin-page-nav" id="site-nav">
+        <a href="./index.html#shop">View Shop</a>
+        <a href="./index.html">Public Website</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="admin-section admin-page-section" id="admin">
+        <div class="admin-auth" id="admin-auth">
+          <div class="admin-copy">
+            <p class="section-kicker">Private Admin</p>
+            <h2>Register or log in to manage stock.</h2>
+            <p>
+              The first three emails to register become admins. After three admins have registered,
+              registration closes and only approved admins can log in.
+            </p>
+          </div>
+
+          <div class="admin-auth-grid">
+            <form class="admin-form" id="admin-register-form">
+              <h3>Register Admin</h3>
+              <label>
+                Email
+                <input type="email" name="email" placeholder="admin@example.com" required />
+              </label>
+              <label>
+                Password
+                <input type="password" name="password" placeholder="Create a password" required minlength="6" />
+              </label>
+              <button class="button primary" type="submit">Register</button>
+              <p class="form-note" id="admin-register-note"></p>
+            </form>
+
+            <form class="admin-form" id="admin-login-form">
+              <h3>Admin Login</h3>
+              <label>
+                Email
+                <input type="email" name="email" placeholder="admin@example.com" required />
+              </label>
+              <label>
+                Password
+                <input type="password" name="password" placeholder="Enter password" required />
+              </label>
+              <button class="button primary" type="submit">Login</button>
+              <p class="form-note" id="admin-login-note"></p>
+            </form>
+          </div>
+        </div>
+
+        <div class="admin-dashboard" id="admin-dashboard" hidden>
+          <div class="admin-copy">
+            <p class="section-kicker">Admin Portal</p>
+            <h2>Manage items available for purchase.</h2>
+            <p>Add new rims, tyres, and supplies. Mark stock as sold or remove items from the public list.</p>
+            <button class="admin-logout" type="button" id="admin-logout">Logout</button>
+          </div>
+
+          <div class="admin-layout">
+            <form class="admin-form" id="inventory-form">
+              <label>
+                Item Name
+                <input type="text" name="name" placeholder="Example: 17 inch BMW rims" required />
+              </label>
+              <label>
+                Category
+                <select name="category" required>
+                  <option>Rims</option>
+                  <option>Tyres</option>
+                  <option>Supplies</option>
+                </select>
+              </label>
+              <label>
+                Price
+                <input type="text" name="price" placeholder="Example: R 3 500" required />
+              </label>
+              <label>
+                Item Details
+                <textarea name="details" rows="4" placeholder="Size, condition, brand, quantity, etc." required></textarea>
+              </label>
+              <label>
+                Upload Photo
+                <input type="file" name="image" accept="image/*" />
+              </label>
+              <button class="button primary" type="submit">Add Item</button>
+              <p class="form-note">Photos are saved in this browser as compressed data for the public stock list.</p>
+            </form>
+
+            <div class="admin-inventory">
+              <h3>Inventory Controls</h3>
+              <div class="admin-list" id="admin-list" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./script.js?v=20260710"></script>
+  </body>
+</html>

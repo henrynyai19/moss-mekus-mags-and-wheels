@@ -28,6 +28,7 @@
 
       <nav class="site-nav" id="site-nav">
         <a href="#services">Services</a>
+        <a href="#shop">Shop</a>
         <a href="#work">Our Work</a>
         <a href="#about">About</a>
         <a href="#contact">Contact</a>
@@ -200,6 +201,27 @@
         </div>
       </section>
 
+      <section class="shop-section" id="shop">
+        <div class="section-heading">
+          <p class="section-kicker">Available Stock</p>
+          <h2>Rims, tyres, and workshop supplies for sale.</h2>
+          <p>
+            Browse available items from MOSS MEKUS. Stock can include new or used rims, tyres in
+            different sizes, wheel accessories, and other supplies.
+          </p>
+        </div>
+
+        <div class="shop-toolbar" aria-label="Shop filters">
+          <button class="shop-filter is-active" type="button" data-shop-filter="all">All Items</button>
+          <button class="shop-filter" type="button" data-shop-filter="Rims">Rims</button>
+          <button class="shop-filter" type="button" data-shop-filter="Tyres">Tyres</button>
+          <button class="shop-filter" type="button" data-shop-filter="Supplies">Supplies</button>
+        </div>
+
+        <div class="shop-grid" id="shop-grid" aria-live="polite"></div>
+        <p class="shop-empty" id="shop-empty" hidden>No items are available right now.</p>
+      </section>
+
       <section class="contact-section" id="contact">
         <div class="contact-copy">
           <p class="section-kicker">Get In Touch</p>
@@ -258,6 +280,7 @@
         <strong>MOSS MEKUS MAG WHEEL & TYRES PTY VENTURES</strong>
         <span>Mag wheel repair, aluminium welding, tyre sales, and rim buying or selling.</span>
         <small class="footer-credit">Built by OUVIA</small>
+        <a class="footer-admin-link" href="./admin.html">Admin Login</a>
       </div>
       <address class="footer-contact">
         <small>Workshop Address</small>
