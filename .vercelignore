@@ -1,0 +1,8 @@
+assets
+public
+deploy-inline
+deploy-webp
+github-update
+zip-check*
+*.zip
+preview-server.ps1
