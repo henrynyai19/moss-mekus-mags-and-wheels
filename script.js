@@ -94,8 +94,13 @@ const adminLoginForm = document.querySelector("#admin-login-form");
 const adminRegisterNote = document.querySelector("#admin-register-note");
 const adminLoginNote = document.querySelector("#admin-login-note");
 const adminLogout = document.querySelector("#admin-logout");
+const inventoryFormTitle = document.querySelector("#inventory-form-title");
+const inventorySubmit = document.querySelector("#inventory-submit");
+const inventoryCancel = document.querySelector("#inventory-cancel");
+const inventoryFormNote = document.querySelector("#inventory-form-note");
 const shopFilters = document.querySelectorAll("[data-shop-filter]");
 let activeShopFilter = "all";
+let editingInventoryId = "";
 
 const supabaseConfig = window.MOSS_SUPABASE || {};
 const supabaseUrl = String(supabaseConfig.url || "").replace(/\/$/, "");
@@ -365,12 +370,14 @@ const renderAdmin = () => {
           <div>
             <strong>${escapeHtml(item.name)}</strong>
             <span>${escapeHtml(item.category)} · ${escapeHtml(item.price)} · ${item.status === "sold" ? "Sold" : "Available"}</span>
+            <p>${escapeHtml(item.details)}</p>
           </div>
           <div class="admin-actions">
+            <button type="button" data-inventory-action="edit" data-item-id="${item.id}">Edit</button>
             <button type="button" data-inventory-action="toggle" data-item-id="${item.id}">
               ${item.status === "sold" ? "Mark Available" : "Mark Sold"}
             </button>
-            <button type="button" data-inventory-action="remove" data-item-id="${item.id}">Remove</button>
+            <button type="button" class="danger-action" data-inventory-action="remove" data-item-id="${item.id}">Delete Listing</button>
           </div>
         </article>
       `,
@@ -407,6 +414,36 @@ const updateAdminAccessView = () => {
   }
 };
 
+const setInventoryFormMode = (item = null) => {
+  if (!inventoryForm) {
+    return;
+  }
+
+  editingInventoryId = item?.id || "";
+  inventoryForm.elements["item-id"].value = editingInventoryId;
+
+  if (item) {
+    inventoryForm.elements.name.value = item.name || "";
+    inventoryForm.elements.category.value = item.category || "Rims";
+    inventoryForm.elements.price.value = item.price || "";
+    inventoryForm.elements.details.value = item.details || "";
+    inventoryForm.elements.image.value = "";
+    inventoryFormTitle.textContent = "Edit Listing";
+    inventorySubmit.textContent = "Save Changes";
+    inventoryCancel.hidden = false;
+    inventoryFormNote.textContent = "Leave the photo empty to keep the current listing image.";
+    inventoryForm.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  inventoryForm.reset();
+  inventoryFormTitle.textContent = "Add New Listing";
+  inventorySubmit.textContent = "Add Item";
+  inventoryCancel.hidden = true;
+  inventoryFormNote.textContent =
+    "Photos upload to Supabase when connected. Until then, listings use this browser for preview.";
+};
+
 const readImageFile = (file) =>
   new Promise((resolve) => {
     if (!file) {
@@ -441,19 +478,39 @@ if (inventoryForm) {
 
     try {
       const imageFile = formData.get("image");
-      const uploadedImage = isSupabaseConfigured ? await uploadSupabaseImage(imageFile) : await readImageFile(imageFile);
+      const selectedItem = inventory.find((item) => item.id === editingInventoryId);
+      const hasNewImage = Boolean(imageFile && imageFile.name);
+      const uploadedImage = hasNewImage
+        ? isSupabaseConfigured
+          ? await uploadSupabaseImage(imageFile)
+          : await readImageFile(imageFile)
+        : selectedItem?.image_url || selectedItem?.image || "";
       const item = {
-        id: `item-${Date.now()}`,
+        id: editingInventoryId || `item-${Date.now()}`,
         name: formData.get("name"),
         category: formData.get("category"),
         price: formData.get("price"),
         details: formData.get("details"),
-        status: "available",
+        status: selectedItem?.status || "available",
         image: uploadedImage,
         image_url: uploadedImage,
       };
 
-      if (isSupabaseConfigured) {
+      if (editingInventoryId) {
+        if (isSupabaseConfigured) {
+          await updateSupabaseItem(editingInventoryId, {
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            details: item.details,
+            status: item.status,
+            image_url: item.image_url,
+          });
+        }
+
+        inventory = inventory.map((inventoryItem) => (inventoryItem.id === editingInventoryId ? item : inventoryItem));
+        saveInventory();
+      } else if (isSupabaseConfigured) {
         const createdItem = await createSupabaseItem(item);
         inventory = [createdItem, ...inventory];
       } else {
@@ -462,7 +519,7 @@ if (inventoryForm) {
       }
 
       renderInventory();
-      inventoryForm.reset();
+      setInventoryFormMode();
     } catch (error) {
       console.error(error);
       alert("The listing could not be saved. Please check the image and try again.");
@@ -528,6 +585,12 @@ if (adminLogout) {
   });
 }
 
+if (inventoryCancel) {
+  inventoryCancel.addEventListener("click", () => {
+    setInventoryFormMode();
+  });
+}
+
 if (adminList) {
   adminList.addEventListener("click", async (event) => {
     if (!getAdminSession()) {
@@ -543,6 +606,16 @@ if (adminList) {
     const action = button.dataset.inventoryAction;
 
     try {
+      if (action === "edit") {
+        const selectedItem = inventory.find((item) => item.id === itemId);
+
+        if (selectedItem) {
+          setInventoryFormMode(selectedItem);
+        }
+
+        return;
+      }
+
       if (action === "toggle") {
         const selectedItem = inventory.find((item) => item.id === itemId);
         const nextStatus = selectedItem?.status === "sold" ? "available" : "sold";
@@ -555,11 +628,22 @@ if (adminList) {
       }
 
       if (action === "remove") {
+        const selectedItem = inventory.find((item) => item.id === itemId);
+        const shouldDelete = confirm(`Delete ${selectedItem?.name || "this listing"} from the public shop?`);
+
+        if (!shouldDelete) {
+          return;
+        }
+
         if (isSupabaseConfigured) {
           await deleteSupabaseItem(itemId);
         }
 
         inventory = inventory.filter((item) => item.id !== itemId);
+
+        if (editingInventoryId === itemId) {
+          setInventoryFormMode();
+        }
       }
 
       saveInventory();
