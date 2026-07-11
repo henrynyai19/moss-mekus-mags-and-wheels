@@ -97,6 +97,23 @@ const adminLogout = document.querySelector("#admin-logout");
 const shopFilters = document.querySelectorAll("[data-shop-filter]");
 let activeShopFilter = "all";
 
+const supabaseConfig = window.MOSS_SUPABASE || {};
+const supabaseUrl = String(supabaseConfig.url || "").replace(/\/$/, "");
+const supabaseAnonKey = String(supabaseConfig.anonKey || "");
+const supabaseBucket = supabaseConfig.bucket || "product-images";
+const supabaseTable = supabaseConfig.table || "inventory_items";
+const isSupabaseConfigured =
+  supabaseUrl.startsWith("https://") &&
+  Boolean(supabaseAnonKey) &&
+  !supabaseUrl.includes("PASTE_") &&
+  !supabaseAnonKey.includes("PASTE_");
+
+const supabaseHeaders = (extraHeaders = {}) => ({
+  apikey: supabaseAnonKey,
+  Authorization: `Bearer ${supabaseAnonKey}`,
+  ...extraHeaders,
+});
+
 const starterInventory = [
   {
     id: "rim-set-17",
@@ -128,6 +145,10 @@ const starterInventory = [
 ];
 
 const loadInventory = () => {
+  if (isSupabaseConfigured) {
+    return starterInventory;
+  }
+
   const savedInventory = localStorage.getItem(inventoryKey);
   return savedInventory ? JSON.parse(savedInventory) : starterInventory;
 };
@@ -135,6 +156,10 @@ const loadInventory = () => {
 let inventory = loadInventory();
 
 const saveInventory = () => {
+  if (isSupabaseConfigured) {
+    return;
+  }
+
   localStorage.setItem(inventoryKey, JSON.stringify(inventory));
 };
 
@@ -181,9 +206,110 @@ const escapeHtml = (value) =>
     return entities[character];
   });
 
+const normalizeInventoryItem = (item) => ({
+  id: item.id,
+  name: item.name || "",
+  category: item.category || "Supplies",
+  price: item.price || "Contact for price",
+  details: item.details || "",
+  status: item.status || "available",
+  image: item.image_url || item.image || "",
+  image_url: item.image_url || item.image || "",
+});
+
+const handleSupabaseResponse = async (response) => {
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Supabase request failed with status ${response.status}`);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
+};
+
+const fetchSupabaseInventory = async () => {
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${supabaseTable}?select=*&order=created_at.desc`,
+    {
+      headers: supabaseHeaders(),
+    },
+  );
+  const items = await handleSupabaseResponse(response);
+  inventory = items.map(normalizeInventoryItem);
+  renderInventory();
+};
+
+const createSupabaseItem = async (item) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${supabaseTable}`, {
+    method: "POST",
+    headers: supabaseHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    }),
+    body: JSON.stringify({
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      details: item.details,
+      status: item.status,
+      image_url: item.image_url || item.image || "",
+    }),
+  });
+  const createdItems = await handleSupabaseResponse(response);
+  return normalizeInventoryItem(createdItems[0]);
+};
+
+const updateSupabaseItem = async (itemId, updates) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${supabaseTable}?id=eq.${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    headers: supabaseHeaders({
+      "Content-Type": "application/json",
+    }),
+    body: JSON.stringify(updates),
+  });
+  await handleSupabaseResponse(response);
+};
+
+const deleteSupabaseItem = async (itemId) => {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${supabaseTable}?id=eq.${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+    headers: supabaseHeaders(),
+  });
+  await handleSupabaseResponse(response);
+};
+
+const uploadSupabaseImage = async (file) => {
+  if (!file || !file.name) {
+    return "";
+  }
+
+  const extension = file.name.split(".").pop() || "jpg";
+  const safeName = file.name
+    .replace(/\.[^/.]+$/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  const imagePath = `listings/${Date.now()}-${safeName || "product"}.${extension}`;
+  const response = await fetch(`${supabaseUrl}/storage/v1/object/${supabaseBucket}/${imagePath}`, {
+    method: "POST",
+    headers: supabaseHeaders({
+      "Content-Type": file.type || "application/octet-stream",
+      "x-upsert": "true",
+    }),
+    body: file,
+  });
+  await handleSupabaseResponse(response);
+  return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${imagePath}`;
+};
+
 const itemImageMarkup = (item) => {
-  if (item.image) {
-    return `<img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" />`;
+  const imageSource = item.image_url || item.image;
+
+  if (imageSource) {
+    return `<img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" loading="lazy" />`;
   }
 
   return `<div class="item-placeholder">${escapeHtml(item.category)}</div>`;
@@ -312,21 +438,35 @@ if (inventoryForm) {
     }
 
     const formData = new FormData(inventoryForm);
-    const uploadedImage = await readImageFile(formData.get("image"));
-    const item = {
-      id: `item-${Date.now()}`,
-      name: formData.get("name"),
-      category: formData.get("category"),
-      price: formData.get("price"),
-      details: formData.get("details"),
-      status: "available",
-      image: uploadedImage,
-    };
 
-    inventory = [item, ...inventory];
-    saveInventory();
-    renderInventory();
-    inventoryForm.reset();
+    try {
+      const imageFile = formData.get("image");
+      const uploadedImage = isSupabaseConfigured ? await uploadSupabaseImage(imageFile) : await readImageFile(imageFile);
+      const item = {
+        id: `item-${Date.now()}`,
+        name: formData.get("name"),
+        category: formData.get("category"),
+        price: formData.get("price"),
+        details: formData.get("details"),
+        status: "available",
+        image: uploadedImage,
+        image_url: uploadedImage,
+      };
+
+      if (isSupabaseConfigured) {
+        const createdItem = await createSupabaseItem(item);
+        inventory = [createdItem, ...inventory];
+      } else {
+        inventory = [item, ...inventory];
+        saveInventory();
+      }
+
+      renderInventory();
+      inventoryForm.reset();
+    } catch (error) {
+      console.error(error);
+      alert("The listing could not be saved. Please check the image and try again.");
+    }
   });
 }
 
@@ -389,7 +529,7 @@ if (adminLogout) {
 }
 
 if (adminList) {
-  adminList.addEventListener("click", (event) => {
+  adminList.addEventListener("click", async (event) => {
     if (!getAdminSession()) {
       return;
     }
@@ -402,23 +542,47 @@ if (adminList) {
     const itemId = button.dataset.itemId;
     const action = button.dataset.inventoryAction;
 
-    if (action === "toggle") {
-      inventory = inventory.map((item) =>
-        item.id === itemId ? { ...item, status: item.status === "sold" ? "available" : "sold" } : item,
-      );
-    }
+    try {
+      if (action === "toggle") {
+        const selectedItem = inventory.find((item) => item.id === itemId);
+        const nextStatus = selectedItem?.status === "sold" ? "available" : "sold";
 
-    if (action === "remove") {
-      inventory = inventory.filter((item) => item.id !== itemId);
-    }
+        if (isSupabaseConfigured) {
+          await updateSupabaseItem(itemId, { status: nextStatus });
+        }
 
-    saveInventory();
-    renderInventory();
+        inventory = inventory.map((item) => (item.id === itemId ? { ...item, status: nextStatus } : item));
+      }
+
+      if (action === "remove") {
+        if (isSupabaseConfigured) {
+          await deleteSupabaseItem(itemId);
+        }
+
+        inventory = inventory.filter((item) => item.id !== itemId);
+      }
+
+      saveInventory();
+      renderInventory();
+    } catch (error) {
+      console.error(error);
+      alert("The listing could not be updated. Please try again.");
+    }
   });
 }
 
 renderInventory();
 updateAdminAccessView();
+
+if (isSupabaseConfigured) {
+  fetchSupabaseInventory().catch((error) => {
+    console.error(error);
+    if (shopEmpty && inventory.length === 0) {
+      shopEmpty.hidden = false;
+      shopEmpty.textContent = "Stock could not load right now. Please contact us on WhatsApp.";
+    }
+  });
+}
 
 document.querySelector(".quote-form")?.addEventListener("submit", (event) => {
   event.preventDefault();

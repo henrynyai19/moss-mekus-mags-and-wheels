@@ -1,0 +1,6 @@
+window.MOSS_SUPABASE = {
+  url: "PASTE_SUPABASE_PROJECT_URL_HERE",
+  anonKey: "PASTE_SUPABASE_ANON_KEY_HERE",
+  bucket: "product-images",
+  table: "inventory_items",
+};
