@@ -391,6 +391,18 @@ textarea {
   align-items: start;
 }
 
+.intro-heading {
+  max-width: 920px;
+}
+
+.intro-heading p:not(.section-kicker) {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+}
+
 h2 {
   margin: 0;
   color: var(--ink);
@@ -412,6 +424,40 @@ h2 {
   grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1fr);
   gap: 28px;
   align-items: stretch;
+}
+
+.intro-card {
+  display: grid;
+  align-content: center;
+  gap: 22px;
+  padding: 26px;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(17, 19, 24, 0.08);
+}
+
+.intro-points {
+  display: grid;
+  gap: 10px;
+}
+
+.intro-points span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.intro-points span::before {
+  display: inline-block;
+  flex: 0 0 10px;
+  width: 10px;
+  height: 10px;
+  background: var(--red);
+  border-radius: 999px;
+  content: "";
 }
 
 .intro-copy img,
