@@ -107,6 +107,8 @@ let activeShopFilter = "all";
 let editingInventoryId = "";
 let activeGalleryItemId = "";
 let activeGalleryIndex = 0;
+let localInventorySyncPromise = null;
+let supabaseInventoryLoaded = false;
 
 const supabaseConfig = window.MOSS_SUPABASE || {};
 const supabaseUrl = String(supabaseConfig.url || "").replace(/\/$/, "");
@@ -263,6 +265,7 @@ const fetchSupabaseInventory = async () => {
   );
   const items = await handleSupabaseResponse(response);
   inventory = items.map(normalizeInventoryItem);
+  supabaseInventoryLoaded = true;
   renderInventory();
 };
 
@@ -331,6 +334,104 @@ const uploadSupabaseImage = async (file) => {
 };
 
 const uploadSupabaseImages = async (files) => Promise.all(files.map((file) => uploadSupabaseImage(file)));
+
+const uploadSupabaseDataUrl = async (dataUrl, itemName, index) => {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  const mimeType = blob.type || "image/jpeg";
+  const extension =
+    {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+    }[mimeType] || "jpg";
+  const safeName = `${itemName || "product"}-${index + 1}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  const file = new File([blob], `${safeName || "product"}.${extension}`, { type: mimeType });
+  return uploadSupabaseImage(file);
+};
+
+const loadLocalInventoryBackup = () => {
+  try {
+    const savedInventory = JSON.parse(localStorage.getItem(inventoryKey) || "[]");
+    return Array.isArray(savedInventory) ? savedInventory : [];
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+const isStarterInventoryItem = (item) => starterInventory.some((starterItem) => starterItem.id === item.id);
+
+const hasMatchingRemoteItem = (localItem) =>
+  inventory.some(
+    (remoteItem) =>
+      remoteItem.name === localItem.name &&
+      remoteItem.price === localItem.price &&
+      remoteItem.details === localItem.details &&
+      remoteItem.category === localItem.category,
+  );
+
+const normalizeMigratedImages = async (item) => {
+  const images = normalizeImageList(item);
+  return Promise.all(
+    images.map((image, index) =>
+      String(image).startsWith("data:") ? uploadSupabaseDataUrl(image, item.name, index) : image,
+    ),
+  );
+};
+
+const syncLocalInventoryToSupabase = async () => {
+  if (!isSupabaseConfigured || !inventoryForm || !getAdminSession() || !supabaseInventoryLoaded) {
+    return;
+  }
+
+  if (localInventorySyncPromise) {
+    return localInventorySyncPromise;
+  }
+
+  localInventorySyncPromise = (async () => {
+    const localItems = loadLocalInventoryBackup().filter(
+      (item) => item?.name && !isStarterInventoryItem(item) && !hasMatchingRemoteItem(item),
+    );
+
+    if (localItems.length === 0) {
+      return;
+    }
+
+    inventoryFormNote.textContent = "Syncing saved listings to Supabase so clients can see them...";
+
+    for (const localItem of localItems) {
+      const uploadedImages = await normalizeMigratedImages(localItem);
+      const createdItem = await createSupabaseItem({
+        name: localItem.name,
+        category: localItem.category || "Supplies",
+        price: localItem.price || "Contact for price",
+        details: localItem.details || "",
+        status: localItem.status || "available",
+        image: uploadedImages[0] || "",
+        image_url: uploadedImages[0] || "",
+        image_urls: uploadedImages,
+      });
+      inventory = [createdItem, ...inventory];
+    }
+
+    localStorage.removeItem(inventoryKey);
+    renderInventory();
+    inventoryFormNote.textContent = `${localItems.length} saved listing${
+      localItems.length === 1 ? "" : "s"
+    } synced to the client shop.`;
+  })().catch((error) => {
+    console.error(error);
+    inventoryFormNote.textContent =
+      "Some saved listings could not sync. Please refresh and try adding the listing again.";
+  });
+
+  return localInventorySyncPromise;
+};
 
 const itemImageMarkup = (item) => {
   const images = normalizeImageList(item);
@@ -514,6 +615,7 @@ const updateAdminAccessView = () => {
 
   if (activeAdmin) {
     renderAdmin();
+    syncLocalInventoryToSupabase();
   }
 
   updateDatabaseStatus();
@@ -677,8 +779,13 @@ if (inventoryForm) {
         inventory = [createdItem, ...inventory];
       }
 
+      if (isSupabaseConfigured) {
+        await fetchSupabaseInventory();
+      }
+
       renderInventory();
       setInventoryFormMode();
+      inventoryFormNote.textContent = "Listing saved to the client shop.";
     } catch (error) {
       console.error(error);
       alert("The listing could not be saved. Please check the image and try again.");
@@ -825,7 +932,7 @@ if (isSupabaseConfigured) {
       shopEmpty.hidden = false;
       shopEmpty.textContent = "Stock could not load right now. Please contact us on WhatsApp.";
     }
-  });
+  }).then(() => syncLocalInventoryToSupabase());
 }
 
 document.querySelector(".quote-form")?.addEventListener("submit", (event) => {
