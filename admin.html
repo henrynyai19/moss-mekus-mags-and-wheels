@@ -6,7 +6,7 @@
     <title>MOSS MEKUS Admin Portal</title>
     <meta name="description" content="Private inventory admin portal for MOSS MEKUS MAG WHEEL & TYRES PTY VENTURES." />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="stylesheet" href="./styles.css?v=20260712" />
+    <link rel="stylesheet" href="./styles.css?v=20260715c" />
   </head>
   <body>
     <header class="site-header" id="top">
@@ -86,15 +86,15 @@
                 <textarea name="details" rows="4" placeholder="Size, condition, brand, quantity, etc." required></textarea>
               </label>
               <label>
-                Upload Photo
-                <input type="file" name="image" accept="image/*" />
+                Upload Photos
+                <input type="file" name="image" accept="image/*" multiple />
               </label>
               <div class="form-actions">
                 <button class="button primary" type="submit" id="inventory-submit">Add Item</button>
                 <button class="button ghost" type="button" id="inventory-cancel" hidden>Cancel Edit</button>
               </div>
               <p class="form-note" id="inventory-form-note">
-                Photos upload to Supabase when connected. Until then, listings use this browser for preview.
+                Select one or more photos. Photos upload to Supabase when connected.
               </p>
             </form>
 
@@ -107,7 +107,7 @@
       </section>
     </main>
 
-    <script src="./supabase-config.js?v=20260712"></script>
-    <script src="./script.js?v=20260712"></script>
+    <script src="./supabase-config.js?v=20260715c"></script>
+    <script src="./script.js?v=20260715c"></script>
   </body>
 </html>

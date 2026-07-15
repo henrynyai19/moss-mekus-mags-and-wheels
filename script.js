@@ -128,6 +128,7 @@ const starterInventory = [
     details: "Clean used rim set. Confirm PCD and vehicle fitment with the workshop.",
     status: "available",
     image: "",
+    image_urls: [],
   },
   {
     id: "all-size-tyres",
@@ -137,6 +138,7 @@ const starterInventory = [
     details: "Ask for availability by tyre size. Fitment and balancing available.",
     status: "available",
     image: "",
+    image_urls: [],
   },
   {
     id: "wheel-supplies",
@@ -146,6 +148,7 @@ const starterInventory = [
     details: "Valves, caps, selected wheel accessories, and workshop supplies.",
     status: "available",
     image: "",
+    image_urls: [],
   },
 ];
 
@@ -211,16 +214,26 @@ const escapeHtml = (value) =>
     return entities[character];
   });
 
-const normalizeInventoryItem = (item) => ({
-  id: item.id,
-  name: item.name || "",
-  category: item.category || "Supplies",
-  price: item.price || "Contact for price",
-  details: item.details || "",
-  status: item.status || "available",
-  image: item.image_url || item.image || "",
-  image_url: item.image_url || item.image || "",
-});
+const normalizeImageList = (item) => {
+  const imageUrls = Array.isArray(item.image_urls) ? item.image_urls : [];
+  return [...imageUrls, item.image_url, item.image].filter(Boolean);
+};
+
+const normalizeInventoryItem = (item) => {
+  const images = normalizeImageList(item);
+
+  return {
+    id: item.id,
+    name: item.name || "",
+    category: item.category || "Supplies",
+    price: item.price || "Contact for price",
+    details: item.details || "",
+    status: item.status || "available",
+    image: images[0] || "",
+    image_url: images[0] || "",
+    image_urls: images,
+  };
+};
 
 const handleSupabaseResponse = async (response) => {
   if (!response.ok) {
@@ -261,6 +274,7 @@ const createSupabaseItem = async (item) => {
       details: item.details,
       status: item.status,
       image_url: item.image_url || item.image || "",
+      image_urls: item.image_urls || [],
     }),
   });
   const createdItems = await handleSupabaseResponse(response);
@@ -310,11 +324,27 @@ const uploadSupabaseImage = async (file) => {
   return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${imagePath}`;
 };
 
+const uploadSupabaseImages = async (files) => Promise.all(files.map((file) => uploadSupabaseImage(file)));
+
 const itemImageMarkup = (item) => {
-  const imageSource = item.image_url || item.image;
+  const images = normalizeImageList(item);
+  const imageSource = images[0];
 
   if (imageSource) {
-    return `<img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" loading="lazy" />`;
+    return `
+      <img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" loading="lazy" />
+      ${
+        images.length > 1
+          ? `<div class="stock-thumbs" aria-label="${escapeHtml(item.name)} image gallery">
+              ${images
+                .slice(0, 4)
+                .map((image, index) => `<img src="${escapeHtml(image)}" alt="${escapeHtml(item.name)} photo ${index + 1}" loading="lazy" />`)
+                .join("")}
+              ${images.length > 4 ? `<span>+${images.length - 4}</span>` : ""}
+            </div>`
+          : ""
+      }
+    `;
   }
 
   return `<div class="item-placeholder">${escapeHtml(item.category)}</div>`;
@@ -431,7 +461,7 @@ const setInventoryFormMode = (item = null) => {
     inventoryFormTitle.textContent = "Edit Listing";
     inventorySubmit.textContent = "Save Changes";
     inventoryCancel.hidden = false;
-    inventoryFormNote.textContent = "Leave the photo empty to keep the current listing image.";
+    inventoryFormNote.textContent = `Leave photos empty to keep the current ${normalizeImageList(item).length || 0} listing photo(s). Selecting new photos replaces the gallery.`;
     inventoryForm.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
@@ -456,6 +486,8 @@ const readImageFile = (file) =>
     reader.readAsDataURL(file);
   });
 
+const readImageFiles = async (files) => Promise.all(files.map((file) => readImageFile(file)));
+
 shopFilters.forEach((button) => {
   button.addEventListener("click", () => {
     activeShopFilter = button.dataset.shopFilter;
@@ -477,14 +509,15 @@ if (inventoryForm) {
     const formData = new FormData(inventoryForm);
 
     try {
-      const imageFile = formData.get("image");
+      const imageFiles = formData.getAll("image").filter((file) => file && file.name);
       const selectedItem = inventory.find((item) => item.id === editingInventoryId);
-      const hasNewImage = Boolean(imageFile && imageFile.name);
-      const uploadedImage = hasNewImage
+      const selectedImages = selectedItem ? normalizeImageList(selectedItem) : [];
+      const hasNewImages = imageFiles.length > 0;
+      const uploadedImages = hasNewImages
         ? isSupabaseConfigured
-          ? await uploadSupabaseImage(imageFile)
-          : await readImageFile(imageFile)
-        : selectedItem?.image_url || selectedItem?.image || "";
+          ? await uploadSupabaseImages(imageFiles)
+          : await readImageFiles(imageFiles)
+        : selectedImages;
       const item = {
         id: editingInventoryId || `item-${Date.now()}`,
         name: formData.get("name"),
@@ -492,8 +525,9 @@ if (inventoryForm) {
         price: formData.get("price"),
         details: formData.get("details"),
         status: selectedItem?.status || "available",
-        image: uploadedImage,
-        image_url: uploadedImage,
+        image: uploadedImages[0] || "",
+        image_url: uploadedImages[0] || "",
+        image_urls: uploadedImages,
       };
 
       if (editingInventoryId) {
@@ -505,6 +539,7 @@ if (inventoryForm) {
             details: item.details,
             status: item.status,
             image_url: item.image_url,
+            image_urls: item.image_urls,
           });
         }
 

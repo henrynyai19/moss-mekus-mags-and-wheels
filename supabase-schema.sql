@@ -6,8 +6,12 @@ create table if not exists public.inventory_items (
   details text not null,
   status text not null default 'available',
   image_url text,
+  image_urls jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+
+alter table public.inventory_items
+add column if not exists image_urls jsonb not null default '[]'::jsonb;
 
 alter table public.inventory_items enable row level security;
 
