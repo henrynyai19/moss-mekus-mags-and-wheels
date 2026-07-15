@@ -58,7 +58,7 @@
         }
       }
     </script>
-    <link rel="stylesheet" href="./styles.css?v=20260715c" />
+    <link rel="stylesheet" href="./styles.css?v=20260715d" />
   </head>
   <body>
     <header class="site-header" id="top">
@@ -364,7 +364,18 @@
       <strong>068 165 6964</strong>
     </a>
 
-    <script src="./supabase-config.js?v=20260715c"></script>
-    <script src="./script.js?v=20260715c"></script>
+    <div class="gallery-modal" id="gallery-modal" hidden>
+      <div class="gallery-backdrop" data-gallery-close></div>
+      <div class="gallery-dialog" role="dialog" aria-modal="true" aria-label="Listing image viewer">
+        <button class="gallery-close" type="button" data-gallery-close aria-label="Close image viewer">Close</button>
+        <button class="gallery-nav gallery-prev" type="button" data-gallery-prev aria-label="Previous image">Previous</button>
+        <img id="gallery-image" src="" alt="" />
+        <button class="gallery-nav gallery-next" type="button" data-gallery-next aria-label="Next image">Next</button>
+        <p id="gallery-caption"></p>
+      </div>
+    </div>
+
+    <script src="./supabase-config.js?v=20260715d"></script>
+    <script src="./script.js?v=20260715d"></script>
   </body>
 </html>

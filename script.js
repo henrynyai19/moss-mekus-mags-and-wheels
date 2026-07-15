@@ -99,8 +99,13 @@ const inventorySubmit = document.querySelector("#inventory-submit");
 const inventoryCancel = document.querySelector("#inventory-cancel");
 const inventoryFormNote = document.querySelector("#inventory-form-note");
 const shopFilters = document.querySelectorAll("[data-shop-filter]");
+const galleryModal = document.querySelector("#gallery-modal");
+const galleryImage = document.querySelector("#gallery-image");
+const galleryCaption = document.querySelector("#gallery-caption");
 let activeShopFilter = "all";
 let editingInventoryId = "";
+let activeGalleryItemId = "";
+let activeGalleryIndex = 0;
 
 const supabaseConfig = window.MOSS_SUPABASE || {};
 const supabaseUrl = String(supabaseConfig.url || "").replace(/\/$/, "");
@@ -332,13 +337,21 @@ const itemImageMarkup = (item) => {
 
   if (imageSource) {
     return `
-      <img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" loading="lazy" />
+      <button class="stock-image-button" type="button" data-gallery-item="${escapeHtml(item.id)}" data-gallery-index="0" aria-label="View larger photos of ${escapeHtml(item.name)}">
+        <img src="${escapeHtml(imageSource)}" alt="${escapeHtml(item.name)}" loading="lazy" />
+      </button>
       ${
         images.length > 1
           ? `<div class="stock-thumbs" aria-label="${escapeHtml(item.name)} image gallery">
               ${images
                 .slice(0, 4)
-                .map((image, index) => `<img src="${escapeHtml(image)}" alt="${escapeHtml(item.name)} photo ${index + 1}" loading="lazy" />`)
+                .map(
+                  (image, index) => `
+                    <button type="button" data-gallery-item="${escapeHtml(item.id)}" data-gallery-index="${index}" aria-label="View ${escapeHtml(item.name)} photo ${index + 1}">
+                      <img src="${escapeHtml(image)}" alt="${escapeHtml(item.name)} photo ${index + 1}" loading="lazy" />
+                    </button>
+                  `,
+                )
                 .join("")}
               ${images.length > 4 ? `<span>+${images.length - 4}</span>` : ""}
             </div>`
@@ -420,6 +433,52 @@ const renderInventory = () => {
   renderAdmin();
 };
 
+const renderGallery = () => {
+  if (!galleryModal || !galleryImage || !galleryCaption) {
+    return;
+  }
+
+  const item = inventory.find((inventoryItem) => inventoryItem.id === activeGalleryItemId);
+  const images = item ? normalizeImageList(item) : [];
+
+  if (!item || images.length === 0) {
+    galleryModal.hidden = true;
+    document.body.classList.remove("gallery-open");
+    return;
+  }
+
+  activeGalleryIndex = (activeGalleryIndex + images.length) % images.length;
+  galleryImage.src = images[activeGalleryIndex];
+  galleryImage.alt = `${item.name} photo ${activeGalleryIndex + 1}`;
+  galleryCaption.textContent = `${item.name} - photo ${activeGalleryIndex + 1} of ${images.length}`;
+};
+
+const openGallery = (itemId, imageIndex = 0) => {
+  if (!galleryModal) {
+    return;
+  }
+
+  activeGalleryItemId = itemId;
+  activeGalleryIndex = imageIndex;
+  galleryModal.hidden = false;
+  document.body.classList.add("gallery-open");
+  renderGallery();
+};
+
+const closeGallery = () => {
+  if (!galleryModal) {
+    return;
+  }
+
+  galleryModal.hidden = true;
+  document.body.classList.remove("gallery-open");
+};
+
+const moveGallery = (step) => {
+  activeGalleryIndex += step;
+  renderGallery();
+};
+
 const updateAdminAccessView = () => {
   if (!adminAuth || !adminDashboard) {
     return;
@@ -497,6 +556,52 @@ shopFilters.forEach((button) => {
     renderShop();
   });
 });
+
+if (shopGrid) {
+  shopGrid.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-gallery-item]");
+
+    if (!button) {
+      return;
+    }
+
+    openGallery(button.dataset.galleryItem, Number(button.dataset.galleryIndex || 0));
+  });
+}
+
+if (galleryModal) {
+  galleryModal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-gallery-close]")) {
+      closeGallery();
+    }
+
+    if (event.target.closest("[data-gallery-prev]")) {
+      moveGallery(-1);
+    }
+
+    if (event.target.closest("[data-gallery-next]")) {
+      moveGallery(1);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (galleryModal.hidden) {
+      return;
+    }
+
+    if (event.key === "Escape") {
+      closeGallery();
+    }
+
+    if (event.key === "ArrowLeft") {
+      moveGallery(-1);
+    }
+
+    if (event.key === "ArrowRight") {
+      moveGallery(1);
+    }
+  });
+}
 
 if (inventoryForm) {
   inventoryForm.addEventListener("submit", async (event) => {
