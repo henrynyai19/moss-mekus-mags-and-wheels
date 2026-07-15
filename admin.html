@@ -6,7 +6,7 @@
     <title>MOSS MEKUS Admin Portal</title>
     <meta name="description" content="Private inventory admin portal for MOSS MEKUS MAG WHEEL & TYRES PTY VENTURES." />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="stylesheet" href="./styles.css?v=20260715c" />
+    <link rel="stylesheet" href="./styles.css?v=20260715e" />
   </head>
   <body>
     <header class="site-header" id="top">
@@ -58,6 +58,9 @@
             <p class="section-kicker">Admin Portal</p>
             <h2>Manage items available for purchase.</h2>
             <p>Add new rims, tyres, and supplies. Mark stock as sold or remove items from the public list.</p>
+            <p class="admin-warning" id="admin-database-warning" hidden>
+              Public listing storage is not connected yet. Add the Supabase project URL and anon key so listings are visible to clients.
+            </p>
             <button class="admin-logout" type="button" id="admin-logout">Logout</button>
           </div>
 
@@ -107,7 +110,7 @@
       </section>
     </main>
 
-    <script src="./supabase-config.js?v=20260715c"></script>
-    <script src="./script.js?v=20260715c"></script>
+    <script src="./supabase-config.js?v=20260715e"></script>
+    <script src="./script.js?v=20260715e"></script>
   </body>
 </html>

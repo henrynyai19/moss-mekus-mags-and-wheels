@@ -941,6 +941,20 @@ h2 {
   font-weight: 900;
 }
 
+.admin-warning {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  color: #fff2f2;
+  background: rgba(214, 31, 44, 0.18);
+  border: 1px solid rgba(255, 112, 112, 0.45);
+  border-radius: 8px;
+  font-weight: 800;
+}
+
+.admin-form.is-disabled {
+  border-color: rgba(255, 112, 112, 0.35);
+}
+
 .admin-form h3 {
   margin: 0;
   font-size: 24px;

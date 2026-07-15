@@ -102,6 +102,7 @@ const shopFilters = document.querySelectorAll("[data-shop-filter]");
 const galleryModal = document.querySelector("#gallery-modal");
 const galleryImage = document.querySelector("#gallery-image");
 const galleryCaption = document.querySelector("#gallery-caption");
+const adminDatabaseWarning = document.querySelector("#admin-database-warning");
 let activeShopFilter = "all";
 let editingInventoryId = "";
 let activeGalleryItemId = "";
@@ -433,6 +434,19 @@ const renderInventory = () => {
   renderAdmin();
 };
 
+const updateDatabaseStatus = () => {
+  if (adminDatabaseWarning) {
+    adminDatabaseWarning.hidden = isSupabaseConfigured;
+  }
+
+  if (inventoryForm && adminDashboard) {
+    inventoryForm.classList.toggle("is-disabled", !isSupabaseConfigured);
+    inventoryFormNote.textContent = isSupabaseConfigured
+      ? "Select one or more photos. Photos upload to Supabase and appear on the client shop."
+      : "Listings cannot be published yet because Supabase is not connected. Ask the site owner to add the Supabase URL and anon key.";
+  }
+};
+
 const renderGallery = () => {
   if (!galleryModal || !galleryImage || !galleryCaption) {
     return;
@@ -501,6 +515,8 @@ const updateAdminAccessView = () => {
   if (activeAdmin) {
     renderAdmin();
   }
+
+  updateDatabaseStatus();
 };
 
 const setInventoryFormMode = (item = null) => {
@@ -611,6 +627,12 @@ if (inventoryForm) {
       return;
     }
 
+    if (!isSupabaseConfigured) {
+      updateDatabaseStatus();
+      alert("Listings cannot be published to clients yet because Supabase is not connected.");
+      return;
+    }
+
     const formData = new FormData(inventoryForm);
 
     try {
@@ -653,9 +675,6 @@ if (inventoryForm) {
       } else if (isSupabaseConfigured) {
         const createdItem = await createSupabaseItem(item);
         inventory = [createdItem, ...inventory];
-      } else {
-        inventory = [item, ...inventory];
-        saveInventory();
       }
 
       renderInventory();
@@ -797,6 +816,7 @@ if (adminList) {
 
 renderInventory();
 updateAdminAccessView();
+updateDatabaseStatus();
 
 if (isSupabaseConfigured) {
   fetchSupabaseInventory().catch((error) => {
