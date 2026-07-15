@@ -387,8 +387,7 @@ textarea {
 
 .intro {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 56px;
+  gap: 26px;
   align-items: start;
 }
 
@@ -410,7 +409,9 @@ h2 {
 
 .intro-copy {
   display: grid;
-  gap: 22px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1fr);
+  gap: 28px;
+  align-items: stretch;
 }
 
 .intro-copy img,
@@ -1257,6 +1258,7 @@ h2 {
 
   .quick-strip,
   .intro,
+  .intro-copy,
   .work-band,
   .proof,
   .shop-grid,
