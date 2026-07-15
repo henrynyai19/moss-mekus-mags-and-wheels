@@ -1,6 +1,6 @@
 window.MOSS_SUPABASE = {
-  url: "PASTE_SUPABASE_PROJECT_URL_HERE",
-  anonKey: "PASTE_SUPABASE_ANON_KEY_HERE",
+  url: "https://xoinpvanmszxysyuduyl.supabase.co",
+  anonKey: "sb_publishable_feXec1zz5fzi2B4MtiZjdQ_X-QWQs9i",
   bucket: "product-images",
   table: "inventory_items",
 };
